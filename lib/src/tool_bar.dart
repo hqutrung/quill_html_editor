@@ -1,11 +1,11 @@
 import 'dart:core';
 
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quill_html_editor/quill_html_editor.dart';
 import 'package:quill_html_editor/src/constants/image_constants.dart';
 import 'package:quill_html_editor/src/utils/hex_color.dart';
-import 'package:quill_html_editor/src/widgets/color_picker.dart';
 import 'package:quill_html_editor/src/widgets/image_picker.dart';
 import 'package:quill_html_editor/src/widgets/table_picker.dart';
 import 'package:quill_html_editor/src/widgets/webviewx/src/webviewx_plus.dart';
@@ -456,6 +456,10 @@ class ToolBarState extends State<ToolBar> {
           _toolbarList[i] =
               _toolbarList[i].copyWith(isActive: formatMap['size'] != null);
           break;
+        case ToolBarStyle.style:
+          _toolbarList[i] =
+              _toolbarList[i].copyWith(isActive: formatMap['header'] != null);
+          break;
         case ToolBarStyle.headerOne:
           _toolbarList[i] =
               _toolbarList[i].copyWith(isActive: formatMap['header'] == 1);
@@ -552,6 +556,15 @@ class ToolBarState extends State<ToolBar> {
             child: Padding(
               padding: _buttonPadding,
               child: _fontSizeDD(),
+            )));
+      }
+      if (toolbarItem.style == ToolBarStyle.style) {
+        tempToolBarList.add(Tooltip(
+            waitDuration: const Duration(milliseconds: 800),
+            message: toolbarItem.style.name,
+            child: Padding(
+              padding: _buttonPadding,
+              child: _fontStyleDD(),
             )));
       } else if (toolbarItem.style == ToolBarStyle.align) {
         tempToolBarList.add(Tooltip(
@@ -775,6 +788,8 @@ class ToolBarState extends State<ToolBar> {
         return {'format': 'direction', 'value': ''};
       case ToolBarStyle.size:
         return {'format': 'size', 'value': 'small'};
+      case ToolBarStyle.style:
+        return {'format': 'header', 'value': 1};
       case ToolBarStyle.color:
         return {'format': 'color', 'value': 'red'};
       case ToolBarStyle.align:
@@ -844,10 +859,58 @@ class ToolBarState extends State<ToolBar> {
     );
   }
 
+  Widget _fontStyleDD() {
+    return FittedBox(
+      child: DropdownButtonHideUnderline(
+        child: ButtonTheme(
+          alignedDropdown: true,
+          padding: EdgeInsets.zero,
+          child: DropdownButton(
+              dropdownColor: widget.toolBarColor,
+              alignment: Alignment.centerLeft,
+              selectedItemBuilder: (context) {
+                return [
+                  _fontSelectionTextItem(type: 'Heading 1'),
+                  _fontSelectionTextItem(type: 'Heading 2'),
+                  _fontSelectionTextItem(type: 'Heading 3'),
+                  _fontSelectionTextItem(type: 'Heading 4'),
+                  _fontSelectionTextItem(type: 'Heading 5'),
+                  _fontSelectionTextItem(type: 'Heading 6'),
+                  _fontSelectionTextItem(type: 'Normal'),
+                ];
+              },
+              isDense: true,
+              value: _formatMap['header'] ?? 7,
+              style: TextStyle(fontSize: 14, color: widget.iconColor!),
+              items: [
+                _fontSizeItem(type: 'Heading 1', fontSize: 14, value: 1),
+                _fontSizeItem(type: 'Heading 2', fontSize: 14, value: 2),
+                _fontSizeItem(type: 'Heading 3', fontSize: 14, value: 3),
+                _fontSizeItem(type: 'Heading 4', fontSize: 14, value: 4),
+                _fontSizeItem(type: 'Heading 5', fontSize: 14, value: 5),
+                _fontSizeItem(type: 'Heading 6', fontSize: 14, value: 6),
+                _fontSizeItem(type: 'Normal', fontSize: 14, value: 7),
+              ],
+              onChanged: (value) {
+                _formatMap['header'] = value;
+                if (value == 7) {
+                  widget.controller.setFormat(format: 'header', value: false);
+                  setState(() {});
+                  return;
+                }
+                widget.controller.setFormat(
+                    format: 'header', value: value == 'normal' ? '' : value);
+                setState(() {});
+              }),
+        ),
+      ),
+    );
+  }
+
   DropdownMenuItem _fontSizeItem(
-      {required String type, required double fontSize}) {
+      {required String type, required double fontSize, dynamic value}) {
     return DropdownMenuItem(
-        value: type.toLowerCase(),
+        value: value ?? type.toLowerCase(),
         child: WebViewAware(
           child: Text(type,
               style: TextStyle(
@@ -928,56 +991,61 @@ class ToolBarState extends State<ToolBar> {
   }
 
   Widget _getFontColorWidget(int i) {
-    return ElTooltip(
-      onTap: () {
-        if (_fontColorKey.currentState != null) {
-          _fontColorKey.currentState!.showOverlayOnTap();
-        }
+    return GestureDetector(
+      onTap: () async {
+        widget.controller.unFocus();
+        await showModalBottomSheet(
+          context: context,
+          backgroundColor: Theme.of(context).dialogBackgroundColor,
+          builder: (context) => Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Select Color',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                ColorPicker(
+                  width: 40,
+                  height: 40,
+                  spacing: 0,
+                  runSpacing: 0,
+                  borderRadius: 0,
+                  enableShadesSelection: false,
+                  enableOpacity: false,
+                  enableTonalPalette: false,
+                  enableTooltips: false,
+                  color: HexColor.fromHex(_formatMap['color'] ?? '#000000'),
+                  pickersEnabled: const <ColorPickerType, bool>{
+                    ColorPickerType.accent: false,
+                  },
+                  onColorChanged: (color) {
+                    Navigator.of(context).pop();
+                    final value = (color.value & 0xFFFFFF)
+                        .toRadixString(16)
+                        .padLeft(7, '#')
+                        .toUpperCase();
+                    _formatMap['color'] = value;
+                    _toolbarList[i] = _toolbarList[i].copyWith(isActive: true);
+
+                    widget.controller
+                        .setFormat(format: 'color', value: _formatMap['color']);
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
       },
-      key: _fontColorKey,
-      content: ColorPicker(
-        onColorPicked: (color) {
-          _formatMap['color'] = color;
-          _toolbarList[i] = _toolbarList[i].copyWith(isActive: true);
-          widget.controller
-              .setFormat(format: 'color', value: _formatMap['color']);
-          setState(() {});
-          if (_fontColorKey.currentState != null) {
-            _fontColorKey.currentState!.hideOverlay();
-          }
-        },
-      ),
       child: Material(
         color: Colors.transparent,
-        child: SizedBox(
-          width: widget.iconSize,
-          height: widget.iconSize,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  'A',
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _formatMap['color'] != null
-                          ? widget.activeIconColor
-                          : widget.iconColor,
-                      fontSize: widget.iconSize! - 5),
-                ),
-              ),
-              Container(
-                color: _formatMap['color'] != null
-                    ? HexColor.fromHex(_formatMap['color'])
-                    : Colors.black,
-                height: 3,
-                width: widget.iconSize! - 3,
-              ),
-            ],
-          ),
+        child: Icon(
+          Icons.format_color_text_rounded,
+          color: _formatMap['color'] != null
+              ? HexColor.fromHex(_formatMap['color'])
+              : widget.iconColor,
         ),
       ),
     );
@@ -992,7 +1060,7 @@ class ToolBarState extends State<ToolBar> {
       },
       key: _fontBgColorKey,
       content: ColorPicker(
-        onColorPicked: (color) {
+        onColorChanged: (color) {
           _formatMap['background'] = color;
           _toolbarList[i] = _toolbarList[i].copyWith(isActive: true);
 
@@ -1230,6 +1298,7 @@ class ToolBarItem extends StatelessWidget {
       case ToolBarStyle.link:
       case ToolBarStyle.video:
       case ToolBarStyle.size:
+      case ToolBarStyle.style:
       case ToolBarStyle.addTable:
       case ToolBarStyle.editTable:
       case ToolBarStyle.separator:
@@ -1315,6 +1384,10 @@ enum ToolBarStyle {
   /// [headerTwo] makes the text H2
 
   headerTwo("Header H2"),
+
+  /// [style] sets font style to text
+
+  style("Font Style"),
 
   /// [color] sets font color
 
