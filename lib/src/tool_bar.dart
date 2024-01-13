@@ -870,36 +870,30 @@ class ToolBarState extends State<ToolBar> {
               alignment: Alignment.centerLeft,
               selectedItemBuilder: (context) {
                 return [
-                  _fontSelectionTextItem(type: 'Heading 1'),
-                  _fontSelectionTextItem(type: 'Heading 2'),
-                  _fontSelectionTextItem(type: 'Heading 3'),
-                  _fontSelectionTextItem(type: 'Heading 4'),
-                  _fontSelectionTextItem(type: 'Heading 5'),
-                  _fontSelectionTextItem(type: 'Heading 6'),
-                  _fontSelectionTextItem(type: 'Normal'),
+                  _fontSelectionTextItem(type: 'Title'),
+                  _fontSelectionTextItem(type: 'Heading'),
+                  _fontSelectionTextItem(type: 'Subheading'),
+                  _fontSelectionTextItem(type: 'Body'),
                 ];
               },
               isDense: true,
-              value: _formatMap['header'] ?? 7,
+              value: _formatMap['header'] ?? 4,
               style: TextStyle(fontSize: 14, color: widget.iconColor!),
               items: [
-                _fontSizeItem(type: 'Heading 1', fontSize: 14, value: 1),
-                _fontSizeItem(type: 'Heading 2', fontSize: 14, value: 2),
-                _fontSizeItem(type: 'Heading 3', fontSize: 14, value: 3),
-                _fontSizeItem(type: 'Heading 4', fontSize: 14, value: 4),
-                _fontSizeItem(type: 'Heading 5', fontSize: 14, value: 5),
-                _fontSizeItem(type: 'Heading 6', fontSize: 14, value: 6),
-                _fontSizeItem(type: 'Normal', fontSize: 14, value: 7),
+                _fontSizeItem(type: 'Title', fontSize: 22, value: 1),
+                _fontSizeItem(type: 'Heading', fontSize: 18, value: 2),
+                _fontSizeItem(type: 'Subheading', fontSize: 16, value: 3),
+                _fontSizeItem(type: 'Body', fontSize: 14, value: 4),
               ],
               onChanged: (value) {
                 _formatMap['header'] = value;
-                if (value == 7) {
+                if (value == 4) {
                   widget.controller.setFormat(format: 'header', value: false);
                   setState(() {});
                   return;
                 }
                 widget.controller.setFormat(
-                    format: 'header', value: value == 'normal' ? '' : value);
+                    format: 'header', value: value == 'body' ? '' : value);
                 setState(() {});
               }),
         ),
@@ -929,7 +923,7 @@ class ToolBarState extends State<ToolBar> {
       child: Text(type,
           style: TextStyle(
               fontSize: 14,
-              color: type.toLowerCase() != 'normal'
+              color: type.toLowerCase() != 'body'
                   ? widget.activeIconColor
                   : widget.iconColor!,
               fontWeight: FontWeight.bold)),
